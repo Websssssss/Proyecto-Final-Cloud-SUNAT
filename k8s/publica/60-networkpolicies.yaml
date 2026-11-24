@@ -93,6 +93,12 @@ spec:
           app: pagos
     ports:
     - port: 8000
+  - to:
+    - podSelector:
+        matchLabels:
+          app: documentos
+    ports:
+    - port: 8000
 
 ---
 apiVersion: networking.k8s.io/v1
@@ -114,6 +120,7 @@ spec:
       - simulador
       - fraccionamiento
       - pagos
+      - documentos
   policyTypes:
   - Ingress
   ingress:
@@ -143,6 +150,7 @@ spec:
       - alertas
       - fraccionamiento
       - pagos
+      - documentos
   policyTypes:
   - Egress
   egress:

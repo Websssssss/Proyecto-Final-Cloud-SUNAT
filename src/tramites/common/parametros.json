@@ -46,11 +46,11 @@
   ],
   "multas": {
     "no_presentar_declaracion": {
-      "descripcion": "No presentar la declaración dentro del plazo (Código Tributario, art. 176, num. 1)",
+      "descripcion": "No presentar la declaración dentro del plazo (Código Tributario, art. 176, numeral 1)",
       "porcentaje_uit": 0.5
     },
     "declarar_cifras_falsas": {
-      "descripcion": "Declarar cifras o datos falsos (art. 178, num. 1)",
+      "descripcion": "Declarar cifras o datos falsos (art. 178, numeral 1)",
       "porcentaje_tributo_omitido": 0.5
     }
   },

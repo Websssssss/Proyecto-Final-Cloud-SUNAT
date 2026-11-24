@@ -28,7 +28,7 @@ services:
     tmpfs: [/tmp]
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
-    depends_on: [auth, ruc, rhe, declaraciones, alertas, simulador, fraccionamiento, pagos]
+    depends_on: [auth, ruc, rhe, declaraciones, alertas, simulador, fraccionamiento, pagos, documentos]
     restart: unless-stopped
 
   auth:            {<<: *servicio, build: {context: ., dockerfile: docker/Dockerfile.service, args: {SERVICE: auth}}}
@@ -38,6 +38,7 @@ services:
   alertas:         {<<: *servicio, build: {context: ., dockerfile: docker/Dockerfile.service, args: {SERVICE: alertas}}}
   fraccionamiento: {<<: *servicio, build: {context: ., dockerfile: docker/Dockerfile.service, args: {SERVICE: fraccionamiento}}}
   pagos:           {<<: *servicio, build: {context: ., dockerfile: docker/Dockerfile.service, args: {SERVICE: pagos}}}
+  documentos:      {<<: *servicio, build: {context: ., dockerfile: docker/Dockerfile.service, args: {SERVICE: documentos}}}
   simulador:
     <<: *servicio
     build: {context: ., dockerfile: docker/Dockerfile.service, args: {SERVICE: simulador}}

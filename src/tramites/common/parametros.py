@@ -1,4 +1,4 @@
-"""Carga los parámetros tributarios (separados del código para actualizarlos sin redeploy lógico)."""
+"""Carga los parámetros tributarios (separados del código para actualizarlos sin volver a desplegar el código)."""
 import json
 from functools import lru_cache
 from pathlib import Path

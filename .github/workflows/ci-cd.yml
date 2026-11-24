@@ -9,7 +9,7 @@ permissions:
 
 env:
   REGISTRO: ${{ vars.REGISTRO }}            # p. ej. 123456789012.dkr.ecr.sa-east-1.amazonaws.com
-  SERVICIOS: auth ruc rhe declaraciones alertas simulador fraccionamiento pagos datos
+  SERVICIOS: auth ruc rhe declaraciones alertas simulador fraccionamiento pagos documentos datos
 
 jobs:
   pruebas:
@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        servicio: [auth, ruc, rhe, declaraciones, alertas, simulador, fraccionamiento, pagos, datos, portal]
+        servicio: [auth, ruc, rhe, declaraciones, alertas, simulador, fraccionamiento, pagos, documentos, datos, portal]
     steps:
       - uses: actions/checkout@v4
       - name: Construir imagen
@@ -73,7 +73,7 @@ jobs:
       - name: Actualización gradual (rolling) sin interrupción
         working-directory: k8s/publica
         run: |
-          for s in auth ruc rhe declaraciones alertas simulador fraccionamiento pagos portal; do
+          for s in auth ruc rhe declaraciones alertas simulador fraccionamiento pagos documentos portal; do
             kustomize edit set image tramites/$s=$REGISTRO/tramites-$s:${{ github.sha }}
           done
           kubectl apply -k .

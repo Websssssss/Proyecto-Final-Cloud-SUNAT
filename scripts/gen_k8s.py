@@ -13,7 +13,7 @@ SERVICIOS = {
     "auth": (3, 20, "100m", "128Mi", True), "ruc": (2, 10, "100m", "128Mi", True),
     "rhe": (3, 30, "150m", "128Mi", True), "declaraciones": (3, 30, "150m", "128Mi", True),
     "alertas": (2, 20, "100m", "128Mi", True), "simulador": (2, 20, "100m", "128Mi", False),
-    "fraccionamiento": (2, 10, "100m", "128Mi", True), "pagos": (3, 30, "150m", "128Mi", True),
+    "fraccionamiento": (2, 10, "100m", "128Mi", True), "pagos": (3, 30, "150m", "128Mi", True), "documentos": (2, 12, "150m", "192Mi", True),
 }
 
 
@@ -142,7 +142,7 @@ dump(pub / "kustomization.yaml", {
     "resources": sorted(p.name for p in pub.glob("*.yaml") if p.name != "kustomization.yaml"),
     "images": [{"name": f"tramites/{n}", "newName": f"REGISTRO/tramites-{n}", "newTag": "latest"} for n in [*SERVICIOS, "portal"]]})
 
-# ------------------------------------------------------------------ NUBE PRIVADA (centro de datos, clúster on-premise)
+# ------------------------------------------------------------------ NUBE PRIVADA (centro de datos, clúster local)
 pri = RAIZ / "onprem"
 dump(pri / "00-namespace.yaml", {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": "tramites-datos", "labels": {
     "pod-security.kubernetes.io/enforce": "restricted", **ETQ}}})

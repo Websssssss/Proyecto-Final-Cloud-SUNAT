@@ -10,7 +10,7 @@
 ## Estrategia
 | Componente | Medida |
 |---|---|
-| Portal y microservicios (nube pública) | ≥ 3 réplicas en varias zonas (topologySpread + PDB); imágenes en el registro, redespliegue desde cero con `kubectl apply -k` o la tubería de CI/CD |
+| Portal y microservicios (nube pública) | ≥ 3 réplicas en varias zonas (topologySpread + PDB); imágenes en el registro, redespliegue desde cero con `kubectl apply -k` o el flujo de CI/CD |
 | Región de recuperación | Clúster "pilot light" en la región DR (mínimo de réplicas) y DNS con *failover* (`infra/terraform/main.tf`, TTL 30 s) |
 | Base de datos tributaria (nube privada) | Respaldo cifrado cada 15 min (`50-cronjob-respaldo.yaml`): un *initContainer* vuelca y cifra en disco y el contenedor principal **sube la copia al bucket de respaldos**, que replica a la región DR. El acceso es por rol IRSA con permiso de solo escritura sobre `postgres/` (`infra/terraform/main.tf`). Pendiente en producción: réplica síncrona/asíncrona de PostgreSQL y archivado WAL para un RPO menor |
 | Claves de cifrado | **Depósito de claves** separado (KMS_KEYS y BACKUP_PASSPHRASE): sin ellas los respaldos no se pueden leer |
@@ -18,7 +18,7 @@
 
 ## Escenarios y respuesta
 1. **Falla de un pod o nodo:** Kubernetes reprograma; sin acción humana (RTO de segundos).
-2. **Despliegue defectuoso:** `kubectl rollout undo` (la tubería lo hace automáticamente si `rollout status` falla).
+2. **Despliegue defectuoso:** `kubectl rollout undo` (el flujo de CI/CD lo hace automáticamente si `rollout status` falla).
 3. **Caída de la zona o región pública:** declarar incidente → DNS conmuta a la región DR → escalar réplicas → verificar con `scripts/e2e.py`. Los datos sensibles siguen en el centro de datos; el túnel VPN de la región DR debe estar preconfigurado.
 4. **Pérdida del enlace híbrido:** los servicios que no usan datos personales (calendario, simulador) siguen operando; el resto responde 503 de forma controlada. Activar el enlace/VPN de respaldo.
 5. **Pérdida del centro de datos:** levantar `k8s/onprem` en el sitio alterno, restaurar el último respaldo y apuntar el `Endpoints` de `datos-privados` a la nueva IP.

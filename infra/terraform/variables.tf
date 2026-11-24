@@ -16,7 +16,7 @@ variable "vpc_cidr" {
 }
 variable "servicios" {
   type    = list(string)
-  default = ["auth", "ruc", "rhe", "declaraciones", "alertas", "simulador", "fraccionamiento", "pagos", "portal", "datos"]
+  default = ["auth", "ruc", "rhe", "declaraciones", "alertas", "simulador", "fraccionamiento", "pagos", "documentos", "portal", "datos"]
 }
 variable "onprem_cidr" {
   description = "CIDR del centro de datos de la entidad (nube privada)"

@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 from ..common import datos
 from ..common.app import crear_app
+from ..common.expediente import archivar, notificar
 from ..common.parametros import parametros
 from ..common.security import usuario_actual
 
@@ -53,5 +54,15 @@ def cambio_regimen(body: CambioRegimen, u: dict = Depends(usuario_actual)):
     d = _ficha(u["sub"])
     nuevo = {**d["data"], "regimen": body.regimen}
     datos.actualizar(d["id"], nuevo, usuario=u["sub"])
-    datos.crear("tramite_ruc", u["sub"], {"tipo": "cambio_regimen", "de": d["data"].get("regimen"), "a": body.regimen}, usuario=u["sub"])
-    return {"mensaje": "Cambio de régimen registrado", "regimen": body.regimen}
+    t = datos.crear("tramite_ruc", u["sub"], {"tipo": "cambio_regimen", "de": d["data"].get("regimen"), "a": body.regimen}, usuario=u["sub"])
+    referencia = f'R-{t["id"][:8].upper()}'
+    archivo = archivar(u["sub"], "tramite_ruc", "Constancia de cambio de régimen", [
+        ("Número de trámite", referencia),
+        ("Régimen anterior", d["data"].get("regimen", "no registrado")),
+        ("Régimen nuevo", body.regimen),
+    ], referencia, usuario=u["sub"])
+    notificar(u["sub"], "Cambio de régimen registrado",
+              f'Su régimen cambió a {body.regimen}. Trámite {referencia}.',
+              "tramite_ruc", referencia, usuario=u["sub"])
+    return {"mensaje": "Cambio de régimen registrado", "regimen": body.regimen,
+            "numero_tramite": referencia, "documento_id": archivo["id"]}

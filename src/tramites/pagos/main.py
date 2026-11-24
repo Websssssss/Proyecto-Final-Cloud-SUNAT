@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 from ..common import datos
 from ..common.app import crear_app
+from ..common.expediente import archivar, notificar
 from ..common.parametros import parametros
 from ..common.security import usuario_actual
 
@@ -80,7 +81,19 @@ def presentar(body: Periodo, u: dict = Depends(usuario_actual)):
     doc = {**det, "presentado": date.today().isoformat(),
            "estado": "presentado" if det["obligado"] else "sin importe que pagar"}
     d = datos.crear("pago_a_cuenta", ruc, doc, usuario=ruc)
-    return {"id": d["id"], "numero_orden": f"P-{body.periodo}-{d['id'][:8].upper()}", **doc}
+    orden = f"P-{body.periodo}-{d['id'][:8].upper()}"
+    archivo = archivar(ruc, "pago_a_cuenta", "Constancia de pago a cuenta mensual", [
+        ("Número de orden", orden), ("Periodo", body.periodo),
+        ("Ingresos del periodo", f'S/ {det["ingresos_del_periodo"]:,.2f}'),
+        ("Retenciones efectuadas", f'S/ {det["retenciones_del_periodo"]:,.2f}'),
+        ("Importe a pagar", f'S/ {det["importe_a_pagar"]:,.2f}'),
+        ("Estado", doc["estado"]),
+    ], orden, usuario=ruc)
+    notificar(ruc, f"Pago a cuenta de {body.periodo} presentado",
+              f'Se registró el pago a cuenta del periodo {body.periodo} por '
+              f'S/ {det["importe_a_pagar"]:,.2f}. Orden {orden}.',
+              "pago_a_cuenta", orden, usuario=ruc)
+    return {"id": d["id"], "numero_orden": orden, "documento_id": archivo["id"], **doc}
 
 
 @app.get("/api/pagos")

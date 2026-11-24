@@ -8,6 +8,7 @@ resources:
 - 30-alertas.yaml
 - 30-auth.yaml
 - 30-declaraciones.yaml
+- 30-documentos.yaml
 - 30-fraccionamiento.yaml
 - 30-pagos.yaml
 - 30-rhe.yaml
@@ -41,6 +42,9 @@ images:
   newTag: latest
 - name: tramites/pagos
   newName: REGISTRO/tramites-pagos
+  newTag: latest
+- name: tramites/documentos
+  newName: REGISTRO/tramites-documentos
   newTag: latest
 - name: tramites/portal
   newName: REGISTRO/tramites-portal

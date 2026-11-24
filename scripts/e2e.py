@@ -37,5 +37,24 @@ periodo = __import__("datetime").date.today().strftime("%Y-%m")
 r = c.get(f"/api/pagos/periodo/{periodo}", headers=H)
 ok(r.status_code == 200 and r.json()["ingresos_del_periodo"] >= 2500, "Pago a cuenta determinado desde los recibos del mes")
 ok(c.post("/api/pagos", headers=H, json={"periodo": periodo}).status_code in (201, 409), "Presentación del pago a cuenta")
+
+# --- Paso 4 y 5 del flujo: expediente y notificación -------------------------
+docs = c.get("/api/documentos", headers=H)
+ok(docs.status_code == 200 and any(d["tramite"] == "rhe" for d in docs.json()),
+   "Constancia del recibo archivada en la gestión documental")
+primera = next(d for d in docs.json() if d["tramite"] == "rhe")
+descarga = c.get(f"/api/documentos/{primera['id']}", headers=H)
+ok(descarga.status_code == 200 and descarga.content.startswith(b"%PDF"), "Descarga de la constancia en PDF")
+sustento = c.post("/api/documentos/adjuntar", headers=H,
+                  data={"tramite": "rhe", "referencia": primera["referencia"], "titulo": "Sustento de prueba"},
+                  files={"archivo": ("sustento.pdf", b"%PDF-1.4\n prueba \n", "application/pdf")})
+ok(sustento.status_code == 201, "Adjuntar un sustento al expediente")
+malo = c.post("/api/documentos/adjuntar", headers=H, data={"tramite": "rhe", "titulo": "Falso"},
+              files={"archivo": ("falso.pdf", b"MZ\x90 ejecutable", "application/pdf")})
+ok(malo.status_code == 422, "Rechazo de un archivo que no es PDF/PNG/JPG")
+notifs = c.get("/api/alertas/notificaciones", headers=H)
+ok(notifs.status_code == 200 and len(notifs.json()) >= 2, "Notificaciones de confirmación recibidas")
+ok(c.post(f"/api/alertas/notificaciones/{notifs.json()[0]['id']}/leida", headers=H).status_code == 200,
+   "Marcar una notificación como leída")
 print("\nResultado:", "TODO CORRECTO" if not fallos else f"{fallos} verificación(es) con falla")
 sys.exit(1 if fallos else 0)

@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 from ..common import datos
 from ..common.app import crear_app
+from ..common.expediente import TIPO_NOTIF
 from ..common.parametros import parametros
 from ..common.security import usuario_actual
 
@@ -78,3 +79,28 @@ def suscribir(body: Suscripcion, u: dict = Depends(usuario_actual)):
 def ver_suscripcion(u: dict = Depends(usuario_actual)):
     s = datos.listar("suscripcion", u["sub"], usuario=u["sub"])
     return s[0]["data"] if s else None
+
+
+# ---- Bandeja de notificaciones del contribuyente -----------------------------
+# El paso de "notificar" de cada trámite deja aquí una confirmación persistente;
+# el despachador la entrega además por el canal suscrito.
+def _vista_notificacion(d: dict) -> dict:
+    return {"id": d["id"], **d["data"]}
+
+
+@app.get("/api/alertas/notificaciones")
+def notificaciones(solo_no_leidas: bool = False, u: dict = Depends(usuario_actual)):
+    items = [_vista_notificacion(d) for d in datos.listar(TIPO_NOTIF, u["sub"], usuario=u["sub"])]
+    if solo_no_leidas:
+        items = [n for n in items if not n["leida"]]
+    return sorted(items, key=lambda n: n["creada"], reverse=True)
+
+
+@app.post("/api/alertas/notificaciones/{notif_id}/leida")
+def marcar_leida(notif_id: str, u: dict = Depends(usuario_actual)):
+    d = datos.obtener(notif_id, usuario=u["sub"])
+    if d["tipo"] != TIPO_NOTIF or d["ruc"] != u["sub"]:
+        raise HTTPException(404, "Notificación no encontrada")
+    nuevo = {**d["data"], "leida": True}
+    datos.actualizar(notif_id, nuevo, usuario=u["sub"])
+    return {"id": notif_id, **nuevo}

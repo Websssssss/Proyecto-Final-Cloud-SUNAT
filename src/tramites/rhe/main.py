@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 from ..common import datos
 from ..common.app import crear_app
+from ..common.expediente import archivar, notificar
 from ..common.parametros import parametros
 from ..common.security import usuario_actual
 
@@ -47,7 +48,19 @@ def emitir(body: Emision, u: dict = Depends(usuario_actual)):
         "monto_neto": round(body.monto_bruto - retencion, 2), "estado": "emitido",
     }
     d = datos.crear("rhe", ruc, rhe, usuario=ruc)
-    return {"id": d["id"], **rhe}
+    # El recibo va a la gestión documental y el contribuyente recibe la confirmación.
+    doc = archivar(ruc, "rhe", "Constancia de recibo por honorarios", [
+        ("Número", rhe["numero"]), ("Fecha de emisión", rhe["fecha"]),
+        ("Cliente", f'{rhe["cliente_nombre"]} (RUC {rhe["cliente_ruc"]})'),
+        ("Descripción", rhe["descripcion"]),
+        ("Monto bruto", f'S/ {rhe["monto_bruto"]:,.2f}'),
+        ("Retención de cuarta", f'S/ {rhe["retencion"]:,.2f}'),
+        ("Monto neto", f'S/ {rhe["monto_neto"]:,.2f}'),
+    ], rhe["numero"], usuario=ruc)
+    notificar(ruc, f'Recibo {rhe["numero"]} emitido',
+              f'Se emitió el recibo {rhe["numero"]} por S/ {rhe["monto_bruto"]:,.2f}. '
+              f'La constancia está disponible en su expediente.', "rhe", rhe["numero"], usuario=ruc)
+    return {"id": d["id"], "documento_id": doc["id"], **rhe}
 
 
 @app.get("/api/rhe")
@@ -64,4 +77,11 @@ def anular(rhe_id: str, body: Anulacion, u: dict = Depends(usuario_actual)):
         raise HTTPException(409, "El recibo ya está anulado")
     nuevo = {**d["data"], "estado": "anulado", "motivo_anulacion": body.motivo}
     datos.actualizar(rhe_id, nuevo, usuario=u["sub"])
+    archivar(u["sub"], "rhe", "Constancia de anulación de recibo", [
+        ("Número", nuevo["numero"]), ("Fecha de emisión", nuevo["fecha"]),
+        ("Motivo de anulación", body.motivo),
+    ], f'{nuevo["numero"]}-anulado', usuario=u["sub"])
+    notificar(u["sub"], f'Recibo {nuevo["numero"]} anulado',
+              f'Se anuló el recibo {nuevo["numero"]}. Motivo: {body.motivo}.',
+              "rhe", nuevo["numero"], usuario=u["sub"])
     return {"id": rhe_id, **nuevo}

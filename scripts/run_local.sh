@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Ejecuta toda la solución SIN Docker (útil para depurar): datos privados + 8 servicios + portal en http://localhost:8080
+# Ejecuta toda la solución SIN Docker (útil para depurar): datos privados + 9 servicios + portal en http://localhost:8080
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export PYTHONPATH="$PWD/src"
@@ -13,7 +13,7 @@ trap 'kill ${pids[@]} 2>/dev/null || true' EXIT
 python3 -m uvicorn tramites.datos.main:app --port 8100 --no-access-log & pids+=($!)
 sleep 1.5
 port=8101
-for s in auth ruc rhe declaraciones alertas simulador fraccionamiento pagos; do
+for s in auth ruc rhe declaraciones alertas simulador fraccionamiento pagos documentos; do
   python3 -m uvicorn tramites.$s.main:app --port $port --no-access-log & pids+=($!)
   port=$((port+1))
 done

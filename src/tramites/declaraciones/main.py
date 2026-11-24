@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 from ..common import datos
 from ..common.app import crear_app
+from ..common.expediente import archivar, notificar
 from ..common.parametros import parametros
 from ..common.security import usuario_actual
 
@@ -57,6 +58,26 @@ def calcular(i: Insumos) -> dict:
     }
 
 
+def _archivar_declaracion(ruc: str, orden: str, doc: dict) -> dict:
+    """Deja la constancia en el expediente y avisa al contribuyente."""
+    r = doc["resultado"]
+    archivo = archivar(ruc, "declaracion", f'Constancia de declaración anual ({doc["tipo"]})', [
+        ("Número de orden", orden), ("Ejercicio", doc["ejercicio"]),
+        ("Tipo", f'{doc["tipo"]} (versión {doc["version"]})'),
+        ("Fecha de presentación", doc["presentada"]),
+        ("Base imponible", f'S/ {r["base_imponible"]:,.2f}'),
+        ("Impuesto determinado", f'S/ {r["impuesto_determinado"]:,.2f}'),
+        ("Créditos aplicados", f'S/ {r["creditos_aplicados"]:,.2f}'),
+        ("Saldo a pagar", f'S/ {r["saldo_a_pagar"]:,.2f}'),
+        ("Saldo a favor", f'S/ {r["saldo_a_favor"]:,.2f}'),
+    ], orden, usuario=ruc)
+    notificar(ruc, f'Declaración anual {doc["ejercicio"]} presentada',
+              f'Se registró la declaración {doc["tipo"]} del ejercicio {doc["ejercicio"]}. '
+              f'Orden {orden}. Saldo a pagar: S/ {r["saldo_a_pagar"]:,.2f}.',
+              "declaracion", orden, usuario=ruc)
+    return archivo
+
+
 @app.post("/api/declaraciones/calcular")
 def endpoint_calcular(body: Insumos, u: dict = Depends(usuario_actual)):
     return calcular(body)
@@ -71,7 +92,9 @@ def presentar(body: Insumos, u: dict = Depends(usuario_actual)):
     doc = {"tipo": "original", "version": 1, "ejercicio": body.ejercicio, "presentada": date.today().isoformat(),
            "insumos": body.model_dump(), "resultado": calcular(body)}
     d = datos.crear("declaracion", ruc, doc, usuario=ruc)
-    return {"id": d["id"], "numero_orden": f"D-{body.ejercicio}-{d['id'][:8].upper()}", **doc}
+    orden = f"D-{body.ejercicio}-{d['id'][:8].upper()}"
+    archivo = _archivar_declaracion(ruc, orden, doc)
+    return {"id": d["id"], "numero_orden": orden, "documento_id": archivo["id"], **doc}
 
 
 @app.post("/api/declaraciones/rectificar", status_code=201)
@@ -84,7 +107,9 @@ def rectificar(body: Insumos, u: dict = Depends(usuario_actual)):
     doc = {"tipo": "rectificatoria", "version": version, "ejercicio": body.ejercicio, "presentada": date.today().isoformat(),
            "insumos": body.model_dump(), "resultado": calcular(body)}
     d = datos.crear("declaracion", ruc, doc, usuario=ruc)
-    return {"id": d["id"], "numero_orden": f"D-{body.ejercicio}-{d['id'][:8].upper()}", **doc}
+    orden = f"D-{body.ejercicio}-{d['id'][:8].upper()}"
+    archivo = _archivar_declaracion(ruc, orden, doc)
+    return {"id": d["id"], "numero_orden": orden, "documento_id": archivo["id"], **doc}
 
 
 @app.get("/api/declaraciones")

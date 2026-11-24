@@ -49,8 +49,8 @@ body{
 
 /* ---------------------------------------------------------------- Marco */
 .marco{
-  display:grid;grid-template-columns:var(--barra-w) 1fr;gap:14px;padding:14px;
-  position:relative;max-width:1500px;height:calc(100vh - 40px);margin:0 auto;
+  display:grid;grid-template-columns:var(--barra-w) minmax(0,1fr);gap:14px;padding:14px;
+  position:relative;max-width:1500px;height:calc(100vh - 40px);min-height:0;margin:0 auto;
   background:#EDF3F9;border-radius:var(--r-g);box-shadow:var(--sombra);overflow:hidden;
 }
 @supports (height:100dvh){ .marco{height:calc(100dvh - 40px)} }
@@ -58,32 +58,37 @@ body{
 /* ---------------------------------------------------------------- Barra lateral */
 .barra{
   background:linear-gradient(180deg,var(--azul) 0%,var(--azul-osc) 100%);
-  color:var(--blanco);display:flex;flex-direction:column;gap:.5rem;
-  padding:1.4rem .9rem 1.1rem;min-width:0;border-radius:22px;
+  color:var(--blanco);display:flex;flex-direction:column;gap:.4rem;
+  padding:clamp(10px,1.7vh,18px) .9rem clamp(10px,1.5vh,16px);
+  height:100%;min-height:0;min-width:0;overflow:hidden;border-radius:22px;
 }
-.barra-marca{display:flex;align-items:center;gap:.65rem;padding:0 .2rem .6rem;min-width:0}
+.barra-marca{flex:none;display:flex;align-items:center;gap:.65rem;padding:0 .2rem clamp(6px,1vh,12px);min-width:0}
 .placa{                                  /* el logotipo va sobre blanco: sobre azul no contrasta */
   flex:1;min-width:0;display:grid;place-items:center;
   background:var(--blanco);border-radius:12px;padding:.5rem .7rem;
 }
 .placa img{display:block;width:100%;max-width:152px;height:auto}
-.marca-nota{
-  margin:0 .25rem .5rem;font-size:.65rem;line-height:1.35;
-  color:rgba(255,255,255,.62);
-}
 .marca-texto{display:flex;flex-direction:column;line-height:1.15;min-width:0}
 .marca-texto strong{font-size:1rem;font-weight:700;letter-spacing:-.01em}
 .marca-texto span{font-size:.75rem;color:rgba(255,255,255,.72)}
 
-.barra-nav{display:flex;flex-direction:column;gap:.15rem;margin-top:.4rem;min-width:0}
+.barra-nav{
+  flex:1 1 auto;min-height:0;min-width:0;overflow-y:auto;overscroll-behavior:contain;
+  display:flex;flex-direction:column;gap:clamp(2px,.5vh,6px);
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.35) transparent;
+}
+.barra-nav::-webkit-scrollbar{width:6px}
+.barra-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.3);border-radius:3px}
 .barra-nav .grupo{
   font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;
-  color:rgba(255,255,255,.55);padding:.9rem .9rem .35rem;
+  color:rgba(255,255,255,.55);padding:clamp(8px,1.5vh,16px) .9rem .3rem;margin:0;
 }
+.barra-nav .grupo:first-child{padding-top:.2rem}
 .nav-item{
   position:relative;display:flex;align-items:center;justify-content:flex-start;gap:.7rem;width:100%;
-  padding:.6rem .8rem;border:0;border-radius:10px;background:transparent;font-size:.83rem;
+  flex:none;border:0;border-radius:10px;background:transparent;
   color:rgba(255,255,255,.84);font:inherit;text-align:left;cursor:pointer;
+  padding:clamp(7px,1.2vh,11px) .8rem;font-size:.83rem;   /* font:inherit va antes: si no, borra el tamaño */
   transition:background .16s ease,color .16s ease;
 }
 .nav-item .ic{flex:0 0 auto}
@@ -95,7 +100,7 @@ body{
   width:4px;height:20px;background:var(--guinda);border-radius:3px;
 }
 
-.barra-pie{margin-top:auto;padding-top:.9rem;border-top:1px solid rgba(255,255,255,.18);display:flex;flex-direction:column;gap:.5rem}
+.barra-pie{flex:none;margin-top:auto;padding-top:clamp(8px,1.2vh,14px);border-top:1px solid rgba(255,255,255,.18);display:flex;flex-direction:column;gap:.4rem}
 .ruc-lateral{display:flex;flex-direction:column;padding:0 .9rem;font-size:.75rem;color:rgba(255,255,255,.7)}
 .ruc-lateral b{font-size:.85rem;color:var(--blanco);font-weight:600;letter-spacing:.01em}
 
@@ -121,11 +126,22 @@ body{
 .avatar{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--azul-suave);color:var(--azul-osc);font-weight:700;font-size:.78rem}
 .usuario span{font-size:.8rem;color:var(--texto);white-space:nowrap}
 
-.cuerpo{display:grid;grid-template-columns:1fr;flex:1;min-height:0}
+.cuerpo{display:grid;grid-template-columns:minmax(0,1fr);flex:1 1 auto;min-height:0;min-width:0}
 .cuerpo.con-panel{grid-template-columns:minmax(0,1fr) minmax(290px,30%)}
-main{padding:1.5rem 1.8rem 2rem;overflow-y:auto;min-width:0}
+main{
+  padding:1.5rem 1.8rem 2rem;overflow-y:auto;overscroll-behavior:contain;
+  min-width:0;min-height:0;scrollbar-width:thin;scrollbar-color:#C6D8E8 transparent;
+}
+main::-webkit-scrollbar{width:8px}
+main::-webkit-scrollbar-thumb{background:#C6D8E8;border-radius:4px}
 main:focus{outline:none}
-.panel{background:#F7FAFD;border-left:1px solid var(--borde);padding:1.4rem 1.25rem;overflow-y:auto}
+.panel{
+  background:#F7FAFD;border-left:1px solid var(--borde);padding:1.4rem 1.25rem;
+  overflow-y:auto;overscroll-behavior:contain;min-width:0;min-height:0;
+  scrollbar-width:thin;scrollbar-color:#C6D8E8 transparent;
+}
+.panel::-webkit-scrollbar{width:8px}
+.panel::-webkit-scrollbar-thumb{background:#C6D8E8;border-radius:4px}
 
 footer{padding:.9rem 1.8rem;border-top:1px solid var(--borde);font-size:.72rem;color:var(--texto-sec);background:var(--blanco)}
 
@@ -341,7 +357,7 @@ td button{padding:.3rem .7rem;font-size:.78rem}
 .enlace{padding:.2rem .35rem;background:none;border:0;border-radius:6px;font-size:.75rem;font-weight:600;color:var(--azul)}
 .enlace:hover{background:none;color:var(--guinda);text-decoration:underline}
 .mini{background:var(--blanco);border:1px solid var(--borde);border-radius:18px;padding:.85rem;margin-bottom:1.4rem}
-.mini-sem,.mini-dias{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}
+.mini-sem,.mini-dias{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;text-align:center}
 .mini-sem span{font-size:.65rem;font-weight:600;color:var(--texto-sec);padding:.15rem 0}
 .dia{font-size:.74rem;padding:.35rem 0;border-radius:9px;color:var(--texto)}
 .dia.vacio{visibility:hidden}
@@ -373,7 +389,7 @@ td button{padding:.3rem .7rem;font-size:.78rem}
   :root{--barra-w:76px}
   .barra{padding-inline:.75rem;align-items:center}
   .barra-marca{justify-content:center;padding-inline:0}
-  .marca-texto,.marca-nota{display:none}
+  .marca-texto{display:none}
   .placa{padding:.35rem}
   .nav-item{justify-content:center;padding-inline:.6rem}
   .nav-item .etiqueta{display:none}
@@ -413,7 +429,10 @@ td button{padding:.3rem .7rem;font-size:.78rem}
   .usuario > span:not(.avatar){display:none}
   .usuario{border:0;padding:0}
 }
-@media (min-width:761px){ .solo-cajon{display:none} }
+@media (min-width:761px){
+  .solo-cajon{display:none}
+  html,body{overflow:hidden}   /* la página no se mueve: el scroll es interno */
+}
 
 /* ---------------------------------------------------------------- Accesibilidad */
 @media (prefers-reduced-motion:reduce){

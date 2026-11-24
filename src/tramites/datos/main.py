@@ -274,7 +274,7 @@ def sembrar_demo():
     ctx = {"origen": "seed", "usuario": "-"}
     for tipo, data in [
         ("usuario", {"usuario": "PSICOLOGA1", "clave_hash": hash_clave("Demo#2026"), "totp_secret": DEMO_TOTP}),
-        ("contribuyente", {"razon_social": "Mariana Quispe Rojas (demo)", "domicilio": "Av. Los Fresnos 123, Lima",
+        ("contribuyente", {"razon_social": "Mariana Quispe Rojas", "domicilio": "Av. Los Fresnos 123, Lima",
                            "actividad": "Servicios de psicología", "regimen": "Renta de cuarta categoría",
                            "suspension_retenciones": False}),
     ]:

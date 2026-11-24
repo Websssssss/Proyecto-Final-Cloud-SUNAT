@@ -7,10 +7,10 @@ import httpx
 from fastapi import FastAPI, Request, Response
 from fastapi.staticfiles import StaticFiles
 
-PUERTOS = {"auth": 8101, "ruc": 8102, "rhe": 8103, "declaraciones": 8104, "alertas": 8105, "simulador": 8106, "fraccionamiento": 8107, "pagos": 8108}
+PUERTOS = {"auth": 8101, "ruc": 8102, "rhe": 8103, "declaraciones": 8104, "alertas": 8105, "simulador": 8106, "fraccionamiento": 8107, "pagos": 8108, "documentos": 8109}
 RUTAS = {"/api/auth": "auth", "/api/ruc": "ruc", "/api/rhe": "rhe", "/api/declaraciones": "declaraciones",
          "/api/alertas": "alertas", "/api/simulador": "simulador", "/api/fraccionamiento": "fraccionamiento",
-         "/api/pagos": "pagos"}
+         "/api/pagos": "pagos", "/api/documentos": "documentos"}
 app = FastAPI(docs_url=None)
 cliente = httpx.AsyncClient(timeout=15)
 

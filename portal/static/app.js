@@ -4,6 +4,20 @@ const $ = (s) => document.querySelector(s);
 const estado = { token: sessionStorage.getItem("token"), ruc: sessionStorage.getItem("ruc"), vista: "inicio" };
 const soles = (n) => "S/ " + Number(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+// ---- Textos legibles ------------------------------------------------------------------------
+// La API devuelve identificadores internos (minúsculas, sin tildes, con guiones bajos). Nunca se muestran
+// tal cual: se traducen a la ortografía normal del español (mayúscula inicial, tildes y siglas correctas).
+const cap = (t) => { const s = String(t ?? ""); return s.charAt(0).toUpperCase() + s.slice(1); };
+const ETIQUETA_ESTADO = { urgente: "Urgente", proximo: "Próximo", vencido: "Vencido", programado: "Programado" };
+const ETIQUETA_ORIGEN = { constancia: "Constancia", sustento: "Sustento" };
+const ETIQUETA_TRAMITE = { rhe: "Recibo por honorarios", declaracion: "Declaración anual", pago_a_cuenta: "Pago a cuenta",
+  fraccionamiento: "Fraccionamiento", tramite_ruc: "Trámite RUC", otro: "Otro" };
+const SUBSANACIONES = [{ valor: "voluntaria_antes_de_notificacion", texto: "Voluntaria antes de notificación" },
+  { valor: "inducida_dentro_del_plazo", texto: "Inducida dentro del plazo" }, { valor: "ninguna", texto: "Ninguna" }];
+const CANALES = [{ valor: "correo", texto: "Correo" }, { valor: "sms", texto: "SMS" }, { valor: "whatsapp", texto: "WhatsApp" }];
+const etiquetaEstado = (e) => ETIQUETA_ESTADO[e] || cap(e);
+const etiquetaTramite = (t) => ETIQUETA_TRAMITE[t] || cap(String(t ?? "").replaceAll("_", " "));
+
 function h(tag, attrs, ...hijos) {
   const e = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs || {})) {
@@ -27,6 +41,8 @@ const ICONOS = {
   inicio: ["m3 10 9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z", "M9 21v-7h6v7"],
   pagos: ["M12 2v20", "M17 6.5A3.5 3.5 0 0 0 13.5 4h-3a3.5 3.5 0 0 0 0 7h3a3.5 3.5 0 0 1 0 7h-3.5A3.5 3.5 0 0 1 6.5 15"],
   flecha: ["M5 12h14", "m13 6 6 6-6 6"],
+  expediente: ["M4 4h5l2 3h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z", "M8 14h8"],
+  descargar: ["M12 3v12", "m7 11 5 5 5-5", "M5 21h14"],
   menu: ["M4 7h16", "M4 12h16", "M4 17h16"],
   cerrar: ["m6 6 12 12", "m18 6-12 12"],
   entrar: ["M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4", "m10 17 5-5-5-5", "M15 12H3"],
@@ -62,7 +78,7 @@ function formulario(campos, textoBoton, alEnviar, salida) {
   for (const c of campos) {
     const id = "f_" + c.n;
     const ctl = c.opciones
-      ? h("select", { id, name: c.n }, c.opciones.map((o) => h("option", { value: o }, o)))
+      ? h("select", { id, name: c.n }, c.opciones.map((o) => typeof o === "string" ? h("option", { value: o }, o) : h("option", { value: o.valor }, o.texto)))
       : h("input", { id, name: c.n, type: c.t || "text", value: c.v ?? "", required: c.req === false ? null : "", step: c.t === "number" ? "any" : null, min: c.min ?? null, max: c.max ?? null, autocomplete: c.ac || "off", inputmode: c.im || null, pattern: c.p || null });
     if (c.req === false) ctl.removeAttribute("required");
     f.append(h("label", { for: id }, c.l), ctl);
@@ -107,7 +123,7 @@ function tiraVencimientos(items) {
     items.slice(0, 7).map((v) => {
       const f = v.vence.split("-");
       return h("button", { type: "button", role: "listitem", class: "tira-dia est-" + v.estado,
-        "aria-label": `${v.obligacion}, vence el ${v.vence}, ${v.estado}`,
+        "aria-label": `${v.obligacion}, vence el ${v.vence}, ${etiquetaEstado(v.estado).toLowerCase()}`,
         onclick: () => irA(estado.token ? "alertas" : "calendario") },
         h("span", { class: "tira-num" }, String(Number(f[2]))),
         h("span", { class: "tira-mes" }, MES_CORTO[Number(f[1]) - 1]),
@@ -130,7 +146,7 @@ function barraProporcion(partes, total) {
 function barrasPorMes(filas) {
   const max = Math.max(...filas.map((f) => f.valor));
   return h("div", { class: "barras" }, filas.map((f) =>
-    h("div", { class: "barra-fila", title: `${f.etiqueta}: ${soles(f.valor)} en ${f.n} recibo(s)` },
+    h("div", { class: "barra-fila", title: `${cap(f.etiqueta)}: ${soles(f.valor)} en ${f.n} recibo(s)` },
       h("span", { class: "barra-et" }, f.etiqueta),
       h("span", { class: "barra-via" }, h("span", { class: "barra-relleno", "data-w": String(f.valor / max * 100) })),
       h("b", { class: "barra-val" }, soles(f.valor)))));
@@ -193,7 +209,7 @@ function tablaVencimientos(items) {
     const vis = activo === "todos" ? items : items.filter((v) => v.estado === activo);
     cuerpo.replaceChildren(vis.length
       ? tabla(["Obligación", "Período", "Vence", "Días", "Estado"], vis.map((v) =>
-          [v.obligacion, v.periodo, v.vence, v.dias_restantes, h("span", { class: "chip " + v.estado }, v.estado)]))
+          [v.obligacion, v.periodo, v.vence, v.dias_restantes, h("span", { class: "chip " + v.estado }, etiquetaEstado(v.estado))]))
       : aviso("info", "No hay vencimientos con ese estado."));
   };
   const barra = h("div", { class: "filtros", role: "group", "aria-label": "Filtrar vencimientos por estado" },
@@ -230,6 +246,7 @@ const vistas = {
       ["rhe", "Emita recibos por honorarios, calcule la retención y anule los que necesite."],
       ["pagos", "Determine su pago a cuenta mensual a partir de los recibos del periodo y preséntelo."],
       ["declaracion", "Calcule su declaración anual de renta y preséntela o rectifíquela."],
+      ["expediente", "Descargue las constancias de sus trámites y adjunte los sustentos que necesite."],
       ["alertas", "Revise sus próximos vencimientos y suscríbase a avisos por correo o SMS."],
     ].filter(([k]) => vistas[k].publica || estado.token);
     raiz.append(h("div", { class: "tramites" }, fichas.map(([k, d], i) => tarjetaTramite(k, d, i % 3))));
@@ -253,7 +270,7 @@ const vistas = {
       formulario([
         { n: "tributo_omitido", l: "Tributo omitido o pendiente (S/)", t: "number", v: 1000, min: 0 },
         { n: "dias_retraso", l: "Días de retraso", t: "number", v: 30, min: 0, max: 3650 },
-        { n: "subsanacion", l: "Subsanación", opciones: ["voluntaria_antes_de_notificacion", "inducida_dentro_del_plazo", "ninguna"] },
+        { n: "subsanacion", l: "Subsanación", opciones: SUBSANACIONES },
       ], "Simular", async (d, out) => {
         const r = await api("/api/simulador/multa", { metodo: "POST", cuerpo: d });
         out.append(kv([["Multa sin rebaja", soles(r.multa_sin_rebaja)], ["Multa con rebaja", soles(r.multa_con_rebaja)],
@@ -328,7 +345,7 @@ const vistas = {
       const rs = await api("/api/rhe", { auth: true });
       pintarResumen(rs);
       lista.replaceChildren(h("h2", {}, "Mis recibos"), rs.length ? tabla(["N.º", "Fecha", "Cliente", "Bruto", "Retención", "Neto", "Estado", ""],
-        rs.map((r) => [r.numero, r.fecha, r.cliente_nombre, soles(r.monto_bruto), soles(r.retencion), soles(r.monto_neto), r.estado,
+        rs.map((r) => [r.numero, r.fecha, r.cliente_nombre, soles(r.monto_bruto), soles(r.retencion), soles(r.monto_neto), cap(r.estado),
           r.estado === "emitido" ? h("button", { type: "button", class: "critico", onclick: async () => { const m = prompt("Motivo de la anulación (mín. 5 caracteres):"); if (m) { try { await api(`/api/rhe/${r.id}/anular`, { metodo: "POST", cuerpo: { motivo: m }, auth: true }); cargar(); } catch (e) { salida.replaceChildren(aviso("error", e.message)); } } } }, "Anular") : ""])) : "Aún no ha emitido recibos.");
     };
     raiz.append(h("div", { class: "card" }, h("h2", {}, "Emitir recibo por honorarios"), formulario([
@@ -355,7 +372,7 @@ const vistas = {
     const cargarHist = async () => {
       const ds = await api("/api/declaraciones", { auth: true });
       hist.replaceChildren(h("h2", {}, "Declaraciones presentadas"), ds.length ? tabla(["Ejercicio", "Tipo", "Versión", "Presentada", "Saldo a pagar", "Saldo a favor"],
-        ds.map((d) => [d.ejercicio, d.tipo, d.version, d.presentada, soles(d.resultado.saldo_a_pagar), soles(d.resultado.saldo_a_favor)])) : "Sin declaraciones.");
+        ds.map((d) => [d.ejercicio, cap(d.tipo), d.version, d.presentada, soles(d.resultado.saldo_a_pagar), soles(d.resultado.saldo_a_favor)])) : "Sin declaraciones.");
     };
     raiz.append(h("div", { class: "card" }, h("h2", {}, "Declaración anual de renta"), f), salida, hist);
     cargarHist().catch((e) => hist.append(aviso("error", e.message)));
@@ -383,7 +400,7 @@ const vistas = {
       hist.replaceChildren(h("h2", {}, "Pagos a cuenta presentados"), ps.length
         ? tabla(["Periodo", "Ingresos", "Retenciones", "Importe", "Presentado", "Estado"],
             ps.map((p) => [p.periodo, soles(p.ingresos_del_periodo), soles(p.retenciones_del_periodo),
-                           soles(p.importe_a_pagar), p.presentado, p.estado]))
+                           soles(p.importe_a_pagar), p.presentado, cap(p.estado)]))
         : "Aún no ha presentado pagos a cuenta.");
     };
     raiz.append(h("div", { class: "card" }, h("h2", {}, "Determinación del periodo"),
@@ -393,10 +410,85 @@ const vistas = {
       }, salida)), salida, hist);
     cargarHist().catch((e) => hist.append(aviso("error", e.message)));
   } },
+  expediente: { titulo: "Mi expediente", sub: "Constancias de sus trámites y sustentos adjuntos", render(raiz) {
+    const salida = h("div", {}), lista = h("div", { class: "card" });
+    const cargar = async () => {
+      const docs = await api("/api/documentos", { auth: true });
+      lista.replaceChildren(h("h2", {}, "Documentos archivados"), docs.length
+        ? tabla(["Documento", "Trámite", "Referencia", "Origen", "Archivado", ""], docs.map((d) => [
+            d.titulo, etiquetaTramite(d.tramite), d.referencia || "—",
+            h("span", { class: "chip " + (d.origen === "constancia" ? "programado" : "proximo") }, ETIQUETA_ORIGEN[d.origen] || cap(d.origen)),
+            d.archivado.slice(0, 10),
+            h("button", { type: "button", class: "sec", onclick: () => descargar(d) }, "Descargar"),
+          ]))
+        : "Aún no hay documentos en su expediente. Se archivan solos al completar un trámite.");
+    };
+    // La descarga pasa por fetch para poder enviar el token; el archivo nunca sale en la URL.
+    const descargar = async (d) => {
+      try {
+        const r = await fetch(`/api/documentos/${d.id}`, { headers: { Authorization: "Bearer " + estado.token } });
+        if (!r.ok) throw new Error("No se pudo descargar el documento");
+        const url = URL.createObjectURL(await r.blob());
+        const a = h("a", { href: url, download: d.nombre_archivo });
+        document.body.append(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      } catch (e) { salida.prepend(aviso("error", e.message)); }
+    };
+    raiz.append(h("div", { class: "card" }, h("h2", {}, "Adjuntar un sustento"),
+      h("p", {}, "Archivos PDF, PNG o JPG de hasta 2 MB."),
+      (() => {
+        const f = h("form", { class: "form" });
+        const campos = h("div", {},
+          h("label", { for: "f_titulo" }, "Título del documento"),
+          h("input", { id: "f_titulo", required: "", maxlength: "120" }),
+          h("label", { for: "f_tramite" }, "Trámite"),
+          h("select", { id: "f_tramite" }, Object.entries(ETIQUETA_TRAMITE)
+            .map(([valor, texto]) => h("option", { value: valor }, texto))),
+          h("label", { for: "f_referencia" }, "Referencia (opcional)"),
+          h("input", { id: "f_referencia", maxlength: "60" }),
+          h("label", { for: "f_archivo" }, "Archivo"),
+          h("input", { id: "f_archivo", type: "file", accept: ".pdf,.png,.jpg,.jpeg", required: "" }));
+        f.append(campos, h("div", { class: "acciones" }, h("button", { type: "submit" }, "Adjuntar")));
+        f.addEventListener("submit", async (ev) => {
+          ev.preventDefault();
+          const archivo = $("#f_archivo").files[0];
+          if (!archivo) return;
+          const cuerpo = new FormData();
+          cuerpo.append("titulo", $("#f_titulo").value);
+          cuerpo.append("tramite", $("#f_tramite").value);
+          cuerpo.append("referencia", $("#f_referencia").value);
+          cuerpo.append("archivo", archivo);
+          try {
+            const r = await fetch("/api/documentos/adjuntar", { method: "POST", body: cuerpo,
+              headers: { Authorization: "Bearer " + estado.token } });
+            const j = await r.json();
+            if (!r.ok) throw new Error(j.detail || "No se pudo adjuntar");
+            salida.prepend(aviso("ok", "Documento adjuntado al expediente."));
+            f.reset(); cargar();
+          } catch (e) { salida.prepend(aviso("error", e.message)); }
+        });
+        return f;
+      })()), salida, lista);
+    cargar().catch((e) => lista.append(aviso("error", e.message)));
+  } },
   alertas: { titulo: "Mis alertas", sub: "Sus próximos vencimientos y la suscripción a avisos", panel: true, render(raiz) {
+    const bandeja = h("div", { class: "card" });
+    const cargarBandeja = async () => {
+      const ns = await api("/api/alertas/notificaciones", { auth: true });
+      bandeja.replaceChildren(h("h2", {}, "Notificaciones"), ns.length
+        ? tabla(["Asunto", "Trámite", "Referencia", "Recibida", "Estado", ""], ns.map((n) => [
+            n.asunto, etiquetaTramite(n.tramite), n.referencia || "—", n.creada.slice(0, 10),
+            h("span", { class: "chip " + (n.leida ? "programado" : "proximo") }, n.leida ? "Leída" : "Nueva"),
+            n.leida ? "" : h("button", { type: "button", class: "sec", onclick: async () => {
+              try { await api(`/api/alertas/notificaciones/${n.id}/leida`, { metodo: "POST", auth: true }); cargarBandeja(); }
+              catch (e) { bandeja.prepend(aviso("error", e.message)); }
+            } }, "Marcar leída"),
+          ]))
+        : "No tiene notificaciones.");
+    };
     const salida = h("div", {}), venc = h("div", { class: "card" }, h("h2", {}, "Mis próximos vencimientos"), "Cargando…");
-    raiz.append(venc, h("div", { class: "card" }, h("h2", {}, "Suscripción a alertas"), formulario([
-      { n: "canal", l: "Canal", opciones: ["correo", "sms", "whatsapp"] }, { n: "contacto", l: "Correo o teléfono de contacto" },
+    raiz.append(bandeja, venc, h("div", { class: "card" }, h("h2", {}, "Suscripción a alertas"), formulario([
+      { n: "canal", l: "Canal", opciones: CANALES }, { n: "contacto", l: "Correo o teléfono de contacto" },
       { n: "anticipacion_dias", l: "Avisar con (días de anticipación)", t: "number", v: 3, min: 1, max: 15 }], "Guardar", async (d, out) => {
       await api("/api/alertas/suscripcion", { metodo: "PUT", cuerpo: { canales: [d.canal], anticipacion_dias: d.anticipacion_dias, contacto: { [d.canal]: d.contacto } }, auth: true });
       out.append(aviso("ok", "Suscripción guardada."));
@@ -404,12 +496,13 @@ const vistas = {
     api("/api/alertas/mis-vencimientos", { auth: true }).then((r) => venc.replaceChildren(h("h2", {}, "Mis próximos vencimientos"),
       tablaVencimientos(r.vencimientos)))
       .catch((e) => venc.append(aviso("error", e.message)));
+    cargarBandeja().catch((e) => bandeja.append(aviso("error", e.message)));
   } },
 };
 
 // ---- Sesión y navegación -----------------------------------------------------
 const PUBLICAS = ["inicio", "calendario", "simulador", "fracc"];
-const PRIVADAS = ["ficha", "rhe", "pagos", "declaracion", "alertas"];
+const PRIVADAS = ["ficha", "rhe", "pagos", "declaracion", "expediente", "alertas"];
 
 function cerrarSesion() {
   estado.token = estado.ruc = null; sessionStorage.clear();
@@ -421,7 +514,13 @@ function irA(vista) {
   estado.vista = vista;
   cerrarCajon(false);
   pintar();
-  $("#main").focus();
+  const centro = $("#main");
+  // Sin preventScroll el navegador desplaza el marco para "acercar" el elemento enfocado,
+  // y como el marco está anclado al viewport la cabecera se perdía de vista.
+  centro.focus({ preventScroll: true });
+  centro.scrollTo({ top: 0 });
+  const panel = $("#panel");
+  if (panel) panel.scrollTop = 0;
 }
 
 // ---- Cajón lateral en móvil --------------------------------------------------
@@ -432,7 +531,7 @@ function abrirCajon() {
   $("#velo").hidden = false;
   $("#abrir-menu").setAttribute("aria-expanded", "true");
   const primero = $("#menu .nav-item");
-  if (primero) primero.focus();
+  if (primero) primero.focus({ preventScroll: true });
 }
 function cerrarCajon(devolverFoco) {
   if (!cajonAbierto) return;
@@ -440,7 +539,7 @@ function cerrarCajon(devolverFoco) {
   $("#barra").classList.remove("abierta");
   $("#velo").hidden = true;
   $("#abrir-menu").setAttribute("aria-expanded", "false");
-  if (devolverFoco) $("#abrir-menu").focus();
+  if (devolverFoco) $("#abrir-menu").focus({ preventScroll: true });
 }
 
 function vistaLogin(raiz) {
@@ -455,7 +554,7 @@ function vistaLogin(raiz) {
     estado.token = r.access_token; estado.ruc = r.ruc; sessionStorage.setItem("token", r.access_token); sessionStorage.setItem("ruc", r.ruc);
     estado.vista = "ficha"; pintar();
   }, salida);
-  const paso1c = h("div", { class: "card" }, h("h2", {}, "Ingreso con Clave SOL (simulada)"), paso1);
+  const paso1c = h("div", { class: "card" }, h("h2", {}, "Ingreso con Clave SOL"), paso1);
   const paso2c = h("div", { class: "card", hidden: "" }, h("h2", {}, "Verificación en dos pasos"), paso2);
   raiz.append(paso1c, paso2c, salida);
 }
@@ -540,7 +639,7 @@ function pintarPanel() {
         ? proximos.map((x) => h("li", {},
             h("span", { class: "pl-ic" }, icono("calendario", 15)),
             h("span", { class: "pl-txt" }, h("strong", {}, x.obligacion), h("span", {}, x.vence + " · " + x.periodo)),
-            h("span", { class: "chip " + x.estado }, x.estado)))
+            h("span", { class: "chip " + x.estado }, etiquetaEstado(x.estado))))
         : h("li", { class: "vacio" }, "Sin vencimientos próximos.")));
   }).catch(() => panel.replaceChildren(aviso("error", "No se pudo cargar el resumen.")));
 }
@@ -550,15 +649,23 @@ function pintarCampana(contenedor) {
   const b = h("button", { type: "button", class: "icono-btn campana", "aria-label": "Mis vencimientos",
     onclick: () => irA("alertas") }, icono("alertas", 20));
   contenedor.prepend(b);
-  api("/api/alertas/mis-vencimientos", { auth: true }).then((r) => {
-    const n = (r.vencimientos || []).filter((v) => v.estado === "urgente" || v.estado === "vencido").length;
-    if (n) { b.classList.add("con-aviso"); b.setAttribute("aria-label", n + " vencimientos por atender"); }
+  Promise.all([
+    api("/api/alertas/mis-vencimientos", { auth: true }).catch(() => ({ vencimientos: [] })),
+    api("/api/alertas/notificaciones?solo_no_leidas=true", { auth: true }).catch(() => []),
+  ]).then(([v, notifs]) => {
+    const urgentes = (v.vencimientos || []).filter((x) => x.estado === "urgente" || x.estado === "vencido").length;
+    const n = urgentes + notifs.length;
+    if (n) {
+      b.classList.add("con-aviso");
+      const plural = (k, uno, varios) => `${k} ${k === 1 ? uno : varios}`;
+      b.setAttribute("aria-label", `${plural(n, "aviso pendiente", "avisos pendientes")}: ${plural(urgentes, "vencimiento", "vencimientos")} y ${plural(notifs.length, "notificación", "notificaciones")}`);
+    }
   }).catch(() => {});
 }
 
 function pintarCabecera() {
   const v = estado.vista === "login"
-    ? { titulo: "Ingresar", sub: "Acceso con Clave SOL simulada y verificación en dos pasos" }
+    ? { titulo: "Ingresar", sub: "Acceso con Clave SOL y verificación en dos pasos" }
     : vistas[estado.vista];
   $("#titulo-vista").textContent = v.titulo;
   $("#sub-vista").textContent = v.sub || "";

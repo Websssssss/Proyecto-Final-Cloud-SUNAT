@@ -30,7 +30,7 @@ def infracciones():
 def simular(c: Consulta):
     p = parametros()
     if c.infraccion not in p["multas"]:
-        raise HTTPException(422, "Infracción no soportada")
+        raise HTTPException(422, "Infracción no admitida")
     if c.subsanacion not in p["gradualidad"]:
         raise HTTPException(422, "Tipo de subsanación no válido")
     m = p["multas"][c.infraccion]

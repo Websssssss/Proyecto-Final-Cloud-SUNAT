@@ -14,8 +14,9 @@ Implementación de referencia del caso **"Modernización de Trámites Digitales 
 | Plan de continuidad y DRP | `docs/DRP.md`, `scripts/backup.sh`, `restore.sh`, `dr_test.sh`, réplica de respaldos y DNS con failover |
 
 Trámites implementados (microservicios): **auth** (Clave SOL simulada + MFA), **ruc**, **rhe**, **declaraciones**,
-**pagos** (pagos a cuenta mensuales), **alertas**, **simulador**, **fraccionamiento**, más **datos-privados**
-(única capa con acceso a la base de datos) y el **portal** web.
+**pagos** (pagos a cuenta mensuales), **documentos** (gestión documental del expediente), **alertas**,
+**simulador**, **fraccionamiento**, más **datos-privados** (única capa con acceso a la base de datos) y el
+**portal** web.
 
 ## Arquitectura
 
@@ -42,13 +43,13 @@ El segundo factor es TOTP con el secreto `JBSWY3DPEHPK3PXP` (agréguelo a una ap
 ### Opción B: sin Docker (depuración)
 ```bash
 pip install -r requirements-dev.txt
-bash scripts/run_local.sh        # datos + 8 servicios + portal en http://localhost:8080 (SQLite)
+bash scripts/run_local.sh        # datos + 9 servicios + portal en http://localhost:8080 (SQLite)
 ```
 
 ### Pruebas
 ```bash
 pip install -r requirements-dev.txt
-python -m pytest -q              # 21 pruebas: negocio, seguridad, cifrado AES-256, auditoría y concurrencia
+python -m pytest -q              # 28 pruebas: negocio, flujos de 5 pasos, seguridad, cifrado y auditoría
 python scripts/e2e.py            # contra el portal desplegado
 k6 run tests/load/pico_vencimiento.js   # carga de un día de vencimiento
 ```
@@ -76,7 +77,7 @@ tests/              pruebas unitarias/integración y de carga     docs/         
 ```
 
 ## Estado de verificación
-Verificado en el entorno de desarrollo: 15 pruebas automatizadas (con las versiones fijadas en `requirements.txt`) y una
+Verificado en el entorno de desarrollo: 28 pruebas automatizadas (con las versiones fijadas en `requirements.txt`) y una
 prueba de humo extremo a extremo con los servicios como procesos separados comunicándose por HTTP.
 **No ejecutado aquí** (sin Docker, clúster ni cuenta de nube): construcción de imágenes, `docker compose up`, manifiestos
 de Kubernetes (solo validada su estructura YAML), Terraform (`plan/apply`), el flujo de CI/CD y `dr_test.sh`.

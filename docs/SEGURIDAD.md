@@ -12,6 +12,8 @@ Correspondencia con los requerimientos técnicos (RT) y normativos del informe.
 | Cifrado en tránsito | TLS 1.2+/1.3 en el balanceador (`50-ingress.yaml`, política `TLS13-1-2`) y HSTS; VPN IPsec / enlace dedicado entre nubes | RT-04, RT-11 |
 | Aislamiento híbrido | Compose: red `privada` interna y sin ruta al exterior. K8s: `NetworkPolicy` de denegación por defecto; los servicios solo salen hacia `10.20.0.0/24:8000` | RT-07, RT-14 |
 | Acceso entre servicios | Clave interna `X-Internal-Key` hacia `datos-privados` (en producción añadir mTLS) | RT-06 |
+| Gestión documental | Las constancias de cada trámite y los sustentos del contribuyente se guardan cifrados en la capa privada; el adjunto se valida por firma binaria (PDF/PNG/JPG) y se limita a 2 MB; solo el titular descarga su expediente | RT-04, RT-07 |
+| Notificación | Cada trámite completado deja una confirmación persistente que el despachador entrega una sola vez; el RUC se enmascara en los registros | RT-08 |
 | Auditoría | Cada lectura/escritura se registra (origen, usuario, acción, recurso) en una cadena de hashes SHA-256; `/internal/auditoria/verificar` detecta alteraciones. Con varias réplicas la escritura se serializa (cerrojo consultivo en PostgreSQL) y `hash_prev` es único, de modo que la cadena no se bifurca (probado con 30 escrituras concurrentes) | RT-08 |
 | Registros sin datos personales | Los logs de aplicación no incluyen cuerpos; el despachador enmascara el RUC | Ley 29733 |
 | Endurecimiento de contenedores | Usuario no root, sistema de archivos de solo lectura, `cap_drop: ALL`, `no-new-privileges`, seccomp `RuntimeDefault`, Pod Security `restricted` | RT-09 |

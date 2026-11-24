@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 from ..common import datos
 from ..common.app import crear_app
+from ..common.expediente import archivar, notificar
 from ..common.parametros import parametros
 from ..common.security import usuario_actual
 
@@ -24,7 +25,7 @@ def simular(deuda: float, cuotas: int) -> dict:
     i = p["tasa_mensual"]
     cuota = deuda / cuotas if i == 0 else deuda * i / (1 - (1 + i) ** -cuotas)
     if cuota < p["cuota_minima"]:
-        raise HTTPException(422, f"La cuota resultante (S/ {cuota:.2f}) es menor al mínimo de S/ {p['cuota_minima']}")
+        raise HTTPException(422, f"La cuota resultante (S/ {cuota:.2f}) es menor que el mínimo de S/ {p['cuota_minima']}")
     saldo, cronograma = deuda, []
     for n in range(1, cuotas + 1):
         interes = saldo * i
@@ -48,7 +49,18 @@ def solicitar(body: Plan, u: dict = Depends(usuario_actual)):
     doc = {"estado": "en evaluación", "solicitada": date.today().isoformat(),
            **{k: plan[k] for k in ("deuda", "cuotas", "cuota_mensual", "total_a_pagar", "total_intereses")}}
     d = datos.crear("fraccionamiento", u["sub"], doc, usuario=u["sub"])
-    return {"id": d["id"], **doc}
+    referencia = f'F-{d["id"][:8].upper()}'
+    archivo = archivar(u["sub"], "fraccionamiento", "Constancia de solicitud de fraccionamiento", [
+        ("Número de solicitud", referencia), ("Fecha", doc["solicitada"]),
+        ("Deuda acogida", f'S/ {doc["deuda"]:,.2f}'), ("Número de cuotas", doc["cuotas"]),
+        ("Cuota mensual", f'S/ {doc["cuota_mensual"]:,.2f}'),
+        ("Total a pagar", f'S/ {doc["total_a_pagar"]:,.2f}'),
+        ("Estado", doc["estado"]),
+    ], referencia, usuario=u["sub"])
+    notificar(u["sub"], "Solicitud de fraccionamiento registrada",
+              f'Su solicitud {referencia} por S/ {doc["deuda"]:,.2f} en {doc["cuotas"]} cuotas '
+              f'quedó {doc["estado"]}.', "fraccionamiento", referencia, usuario=u["sub"])
+    return {"id": d["id"], "numero_solicitud": referencia, "documento_id": archivo["id"], **doc}
 
 
 @app.get("/api/fraccionamiento")
